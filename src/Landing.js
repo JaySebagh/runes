@@ -1,58 +1,68 @@
-import React, { useState } from "react";
-import './assets/styles/landing.css';
+import React, { useReducer } from 'react';
+
+const reducer = (state, { row, value }) => {
+  // check if an option is already selected in the curr row
+  const existing = state.find(sel => sel.row === row);
+
+  // if an option for the curr row is selected, replace it with the new one
+  if (existing) return state.map(sel => (sel.row === row ? { row, value } : sel));
+  
+  // a max of 2 options can be selected at a time
+  if (state.length === 2) {
+    // check if row 1 and 3 are selected
+    const toRemove = state.some(sel => sel.row === 1) && state.some(sel => sel.row === 3)
+      // if it is then remove oldest
+      ? state[0].row 
+      // if it is not then remove the option from the closest row
+      // if the curr row is closer to the new option than the prev row then curr becomes he new prev
+      : state.reduce((prev, curr) => (Math.abs(curr.row - row) < Math.abs(prev.row - row) ? curr : prev)).row;
+
+    // remove the selection and add the new selection
+    return state.filter(sel => sel.row !== toRemove).concat({ row, value });
+  }
+
+  // if there is less than 2 selected, add the new selection
+  return [...state, { row, value }];
+};
+
+// Rows data
+const rows = [
+  { row: 1, options: ['A', 'B', 'C'] },
+  { row: 2, options: ['D', 'E', 'F'] },
+  { row: 3, options: ['G', 'H', 'I'] },
+];
 
 const Landing = () => {
-  const Radio = ({value, checked, setter}) => {
-    return(
-      <label className="radio">
-        <input
-          type="radio"
-          checked={checked == value}
-          onChange={() => setter(value)}
-        />
-        <h1>{value}</h1>
-      </label>
-    )
-  }
+  // holds the curr selected options
+  const [selectedButtons, dispatch] = useReducer(reducer, []);
 
-  const [row1, setRow1] = useState();
-  const [row2, setRow2] = useState();
-  const [row3, setRow3] = useState();
-  const [row4, setRow4] = useState();
-
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    const data = {row1, row2, row3, row4};
-    const json = JSON.stringify(data, null, 4);
-    console.clear();
-    console.log(json);
-  }
-
-  return(
-    <form onSubmit={handleSubmit}>
-      <div className="row1">
-        <Radio value="1" checked={row1} setter={setRow1}/>
-        <Radio value="2" checked={row1} setter={setRow1}/>
-        <Radio value="3" checked={row1} setter={setRow1}/>
-      </div>
-      <div className="row2">
-        <Radio value="1" checked={row2} setter={setRow2}/>
-        <Radio value="2" checked={row2} setter={setRow2}/>
-        <Radio value="3" checked={row2} setter={setRow2}/>
-      </div>
-      <div className="row3">
-        <Radio value="1" checked={row3} setter={setRow3}/>
-        <Radio value="2" checked={row3} setter={setRow3}/>
-        <Radio value="3" checked={row3} setter={setRow3}/>
-      </div>
-      <div className="row4">
-        <Radio value="1" checked={row4} setter={setRow4}/>
-        <Radio value="2" checked={row4} setter={setRow4}/>
-        <Radio value="3" checked={row4} setter={setRow4}/>
-      </div>
-      <button type="submit">get</button>
-    </form>
-  )
+  return (
+    <div>
+      {rows.map(({ row, options }) => (
+        <div key={row}>
+          {options.map(option => (
+            <label key={option}>
+              <input
+                type="radio"
+                name={`row${row}`}
+                // checks if the curr option is in the selectedButtons state and selects it if it is
+                checked={selectedButtons.some(sel => sel.row === row && sel.value === option)}
+                // if the selection is selected then use reducer function
+                onChange={() => dispatch({ row, value: option })}
+              />
+              {option}
+            </label>
+          ))}
+        </div>
+      ))}
+      <ul>
+        {selectedButtons.map(({ row, value }) => (
+          // text showing the selected options
+          <li key={row}>Row {row}: {value}</li>
+        ))}
+      </ul>
+    </div>
+  );
 };
 
 export default Landing;
